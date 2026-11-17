@@ -25,6 +25,7 @@ const ctx = canvas.getContext("2d");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 let ropes = [];
+let letterMask = null;
 let viewWidth = 0;
 let viewHeight = 0;
 let simScale = 1;
@@ -162,31 +163,31 @@ function cover(covered, w, h, x, y, radius) {
   }
 }
 
-function traceDirection(dist, covered, w, h, x, y, sign) {
-  const step = 3.6;
+function traceCenterline(dist, mask, covered, w, h, x, y, sign) {
+  const step = 2.2;
   const points = [];
   let px = x;
   let py = y;
   let direction = null;
   const seen = new Set();
 
-  for (let i = 0; i < 1600; i += 1) {
+  for (let i = 0; i < 2200; i += 1) {
     const radius = sample(dist, w, h, px, py);
-    if (radius < 0.55) break;
+    const ix = Math.round(px);
+    const iy = Math.round(py);
+    if (radius < 0.9 || ix < 1 || iy < 1 || ix >= w - 1 || iy >= h - 1) break;
+    if (!mask[iy * w + ix]) break;
 
-    const key = `${Math.round(px / 3)},${Math.round(py / 3)}`;
-    if (i > 2 && seen.has(key)) break;
+    const key = `${Math.round(px / 2)},${Math.round(py / 2)}`;
+    if (i > 1 && seen.has(key)) break;
     seen.add(key);
 
     points.push({ x: px, y: py, radius });
-    const strandWidth = Math.max(8, Math.min(radius * 1.7, 32));
-    cover(covered, w, h, px, py, Math.max(2.2, strandWidth * 0.28));
+    cover(covered, w, h, px, py, Math.max(2.6, radius * 1.05));
 
     direction = tangentAt(dist, w, h, px, py, direction);
     px += direction.x * step * sign;
     py += direction.y * step * sign;
-
-    if (px < 2 || py < 2 || px >= w - 2 || py >= h - 2) break;
   }
 
   return points;
@@ -212,10 +213,10 @@ function buildRopes(dist, mask, w, h, images) {
   const covered = new Uint8Array(w * h);
   const seeds = [];
 
-  for (let y = 2; y < h - 2; y += 3) {
-    for (let x = 2; x < w - 2; x += 3) {
+  for (let y = 2; y < h - 2; y += 2) {
+    for (let x = 2; x < w - 2; x += 2) {
       const i = y * w + x;
-      if (mask[i] && dist[i] > 0.9) seeds.push({ x, y, d: dist[i] });
+      if (mask[i] && dist[i] > 0.75) seeds.push({ x, y, d: dist[i] });
     }
   }
 
@@ -225,28 +226,25 @@ function buildRopes(dist, mask, w, h, images) {
   function addStrand(seed, index) {
     if (covered[seed.y * w + seed.x]) return;
 
-    const forward = traceDirection(dist, covered, w, h, seed.x, seed.y, 1);
-    const backward = traceDirection(dist, covered, w, h, seed.x, seed.y, -1);
+    const forward = traceCenterline(dist, mask, covered, w, h, seed.x, seed.y, 1);
+    const backward = traceCenterline(dist, mask, covered, w, h, seed.x, seed.y, -1);
     const chain = smooth(backward.reverse().concat(forward.slice(1)));
-    const travel = chain.reduce((sum, point, pointIndex) => {
-      if (pointIndex === 0) return 0;
-      return sum + Math.hypot(point.x - chain[pointIndex - 1].x, point.y - chain[pointIndex - 1].y);
-    }, 0);
-    if (travel < 8 || chain.length < 2) return;
+    if (chain.length < 2) return;
 
-    const pinEvery = 5;
     const strand = images[Math.floor(hash(index + 3) * images.length)];
-    const radius = chain.reduce((sum, point) => sum + point.radius, 0) / chain.length;
-    const width = Math.max(17, Math.min(radius * 4.5, 72)) * (0.92 + hash(index + 11) * 0.16);
-    const points = chain.map((point, pointIndex) => ({
-      x: point.x,
-      y: point.y,
-      px: point.x,
-      py: point.y,
-      rx: point.x,
-      ry: point.y,
-      pinned: pointIndex % pinEvery === 0 || pointIndex === chain.length - 1,
-    }));
+    const points = chain.map((point, pointIndex) => {
+      const span = Math.max(8, point.radius * 4.8);
+      return {
+        x: point.x,
+        y: point.y,
+        px: point.x,
+        py: point.y,
+        rx: point.x,
+        ry: point.y,
+        span,
+        pinned: true,
+      };
+    });
 
     next.push({
       image: strand.image,
@@ -254,7 +252,7 @@ function buildRopes(dist, mask, w, h, images) {
       sw: strand.sw,
       sh: strand.sh,
       phase: hash(index + 19) * strand.sh,
-      width,
+      width: points.reduce((sum, point) => sum + point.span, 0) / points.length,
       depth: hash(index + 23),
       points,
     });
@@ -263,15 +261,14 @@ function buildRopes(dist, mask, w, h, images) {
   seeds.forEach(addStrand);
 
   let gapIndex = seeds.length;
-  for (let y = 2; y < h - 2; y += 2) {
-    for (let x = 2; x < w - 2; x += 2) {
+  for (let y = 2; y < h - 2; y += 3) {
+    for (let x = 2; x < w - 2; x += 3) {
       const i = y * w + x;
-      if (!mask[i] || covered[i] || dist[i] < 0.75) continue;
+      if (!mask[i] || covered[i] || dist[i] < 1.2) continue;
       addStrand({ x, y, d: dist[i] }, gapIndex);
       gapIndex += 1;
     }
   }
-
   next.sort((a, b) => a.depth - b.depth);
   return next;
 }
@@ -281,8 +278,9 @@ function rasterizeLetters(w, h) {
   const [vx, vy, vw, vh] = svg.getAttribute("viewBox").split(/[\s,]+/).map(Number);
   const paths = [...svg.querySelectorAll("path")];
 
-  const pad = Math.min(w, h) * 0.045;
-  const scale = Math.min((w - pad * 2) / vw, (h - pad * 2) / vh);
+  const padX = w * 0.08;
+  const padY = h * 0.1;
+  const scale = Math.min((w - padX * 2) / vw, (h - padY * 2) / vh);
   const ox = (w - vw * scale) / 2;
   const oy = (h - vh * scale) / 2;
 
@@ -307,7 +305,7 @@ function rasterizeLetters(w, h) {
   const pixels = maskCtx.getImageData(0, 0, w, h).data;
   const mask = new Uint8Array(w * h);
   for (let i = 0; i < mask.length; i += 1) mask[i] = pixels[i * 4 + 3] > 128 ? 1 : 0;
-  return mask;
+  return { mask, canvas: maskCanvas };
 }
 
 function rebuild() {
@@ -317,9 +315,10 @@ function rebuild() {
   const maskHeight = Math.max(2, Math.round(viewHeight * simScale));
 
   try {
-    const mask = rasterizeLetters(maskWidth, maskHeight);
-    const dist = distanceToOutside(mask, maskWidth, maskHeight);
-    ropes = buildRopes(dist, mask, maskWidth, maskHeight, window.tinselImages);
+    const traced = rasterizeLetters(maskWidth, maskHeight);
+    letterMask = traced.canvas;
+    const dist = distanceToOutside(traced.mask, maskWidth, maskHeight);
+    ropes = buildRopes(dist, traced.mask, maskWidth, maskHeight, window.tinselImages);
   } catch (error) {
     console.error(error);
   } finally {
@@ -401,27 +400,89 @@ function drawRope(rope) {
     if (length < 0.4) continue;
 
     const srcY = (phase + slice * i) % Math.max(1, sh - slice);
+    const span = ((a.span || width) + (b.span || width)) / 2;
+    const flutterA = tinselFlutter(a.rx, a.ry, i);
+    const flutterB = tinselFlutter(b.rx, b.ry, i + 1);
 
     ctx.save();
-    ctx.translate((a.x + b.x) / 2, (a.y + b.y) / 2);
-    ctx.rotate(Math.atan2(dy, dx) - Math.PI / 2);
+    ctx.translate(
+      (a.x + b.x) / 2 + (flutterA.x + flutterB.x) / 2,
+      (a.y + b.y) / 2 + (flutterA.y + flutterB.y) / 2
+    );
+    ctx.rotate(Math.atan2(dy, dx) - Math.PI / 2 + (flutterA.lean + flutterB.lean) / 2);
     ctx.drawImage(
       image,
       sx,
       srcY,
       sw,
       slice + 1,
-      -width / 2,
+      -span / 2,
       -length / 2,
-      width,
+      span,
       length + 0.8
     );
     ctx.restore();
   }
 }
 
+let windVector = { x: 0.2, y: 0.85, strength: 6 };
+let windClock = 0;
+
+function blowVector(degrees, metersPerSecond) {
+  const radians = (degrees * Math.PI) / 180;
+  const speed = Math.max(0, Math.min(metersPerSecond, 16));
+  return {
+    x: -Math.sin(radians),
+    y: Math.cos(radians),
+    strength: 4 + speed * 0.85,
+  };
+}
+
+function tinselFlutter(x, y, index) {
+  if (reducedMotion) return { x: 0, y: 0, lean: 0 };
+
+  const along = x * windVector.x + y * windVector.y;
+  const gust = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(along * 0.011 - windClock * 0.02));
+  const flap = Math.sin(index * 0.9 - windClock * 0.065 + y * 0.02);
+  const lift = 0.2 + Math.max(0, flap);
+  const amount = windVector.strength * 1.7 * gust * lift;
+  const cross = Math.sin(windClock * 0.045 + index * 0.5) * amount * 0.4;
+
+  return {
+    x: windVector.x * amount - windVector.y * cross,
+    y: windVector.y * amount + windVector.x * cross,
+    lean: flap * 0.42 * gust,
+  };
+}
+
+async function readPlace() {
+  try {
+    const place = await fetch("https://get.geojs.io/v1/ip/geo.json").then((response) => response.json());
+    const lat = Number(place.latitude);
+    const lon = Number(place.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat, lon };
+  } catch (error) {
+    console.error(error);
+  }
+  return { lat: 40.71, lon: -74.01 };
+}
+
+async function loadWind() {
+  try {
+    const place = await readPlace();
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms`;
+    const data = await fetch(url).then((response) => response.json());
+    const current = data.current || {};
+    const speed = Number(current.wind_gusts_10m || current.wind_speed_10m || 3);
+    const direction = Number(current.wind_direction_10m || 0);
+    windVector = blowVector(direction, speed);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 function frame() {
-  simulate();
+  windClock += 1;
   const dpr = window.tinselDpr || 1;
   ctx.setTransform(dpr / simScale, 0, 0, dpr / simScale, 0, 0);
   ctx.clearRect(0, 0, viewWidth * simScale, viewHeight * simScale);
@@ -449,5 +510,7 @@ resize();
 loadImages().then((images) => {
   window.tinselImages = images;
   rebuild();
+  loadWind();
+  window.setInterval(loadWind, 10 * 60 * 1000);
   requestAnimationFrame(frame);
 });
