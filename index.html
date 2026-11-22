@@ -7,7 +7,47 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <canvas id="letters" aria-label="Lowercase alphabet built from tinsel strands"></canvas>
+  <canvas id="letters" aria-label="Lowercase alphabet built from tinsel strands. Click to type."></canvas>
+  <p id="type-hint">Click to type</p>
+  <div id="keyboard" hidden>
+    <div class="key-row">
+      <button type="button" data-key="q">q</button>
+      <button type="button" data-key="w">w</button>
+      <button type="button" data-key="e">e</button>
+      <button type="button" data-key="r">r</button>
+      <button type="button" data-key="t">t</button>
+      <button type="button" data-key="y">y</button>
+      <button type="button" data-key="u">u</button>
+      <button type="button" data-key="i">i</button>
+      <button type="button" data-key="o">o</button>
+      <button type="button" data-key="p">p</button>
+    </div>
+    <div class="key-row">
+      <button type="button" data-key="a">a</button>
+      <button type="button" data-key="s">s</button>
+      <button type="button" data-key="d">d</button>
+      <button type="button" data-key="f">f</button>
+      <button type="button" data-key="g">g</button>
+      <button type="button" data-key="h">h</button>
+      <button type="button" data-key="j">j</button>
+      <button type="button" data-key="k">k</button>
+      <button type="button" data-key="l">l</button>
+    </div>
+    <div class="key-row">
+      <button type="button" data-key="z">z</button>
+      <button type="button" data-key="x">x</button>
+      <button type="button" data-key="c">c</button>
+      <button type="button" data-key="v">v</button>
+      <button type="button" data-key="b">b</button>
+      <button type="button" data-key="n">n</button>
+      <button type="button" data-key="m">m</button>
+      <button type="button" class="key-wide" data-key="backspace" aria-label="Delete">delete</button>
+    </div>
+    <div class="key-row">
+      <button type="button" class="key-space" data-key=" ">space</button>
+      <button type="button" class="key-wide" data-key="done">done</button>
+    </div>
+  </div>
   <div id="letter-source" hidden aria-hidden="true">
 <svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2230.75 725.97">
   <defs>
@@ -56,7 +96,7 @@
   <path class="cls-1" d="M762.76,129.86c-11.32,22.19-36.24,29.62-60.78,34.9l7.49-27.66c2.89-10.69,8.45-20.19,15.53-28.51,10.24-9.46,27.91-14.53,36.61-6.78,6.13,5.46,5.19,18.66,1.15,28.06Z"/>
 </svg>
   </div>
-  <p class="sr-only">The lowercase alphabet is built from strands of tinsel laid along each stroke. The letters stay in place while the tinsel shifts with the current wind.</p>
+  <p class="sr-only">The lowercase alphabet is built from strands of tinsel laid along each stroke. The letters stay in place while the tinsel shifts with the current wind. Click the screen to type your own words in the typeface.</p>
   <script src="script.js"></script>
 </body>
 </html>

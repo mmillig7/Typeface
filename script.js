@@ -20,7 +20,45 @@ const STIFFNESS = 0.72;
 const RETURN = 0.16;
 const MAX_SPEED = 28;
 
+const TOP_BASELINE = 246;
+const BOTTOM_BASELINE = 595;
+const LETTER_GAP = 22;
+const SPACE_WIDTH = 100;
+const LINE_GAP = 46;
+const MAX_TYPED = 80;
+
+const GLYPHS = {
+  a: { outlines: [11], holes: [34], x: 0, top: 83.5, w: 136.9, h: 209, baseline: TOP_BASELINE },
+  b: { outlines: [7], holes: [33], x: 171.7, top: 0.8, w: 131.1, h: 244.2, baseline: TOP_BASELINE },
+  c: { outlines: [21], holes: [], x: 338.7, top: 83.6, w: 119.4, h: 162.5, baseline: TOP_BASELINE },
+  d: { outlines: [3], holes: [30], x: 489, top: 1.6, w: 153.8, h: 244.7, baseline: TOP_BASELINE },
+  e: { outlines: [17], holes: [36], x: 672.7, top: 84.4, w: 117.8, h: 162.2, baseline: TOP_BASELINE },
+  f: { outlines: [12], holes: [], x: 759.8, top: 0, w: 189.1, h: 332.1, baseline: TOP_BASELINE },
+  g: { outlines: [2], holes: [28, 29], x: 907.8, top: 82.8, w: 176.3, h: 249.5, baseline: TOP_BASELINE },
+  h: { outlines: [5], holes: [], x: 1109.5, top: 0.9, w: 150.5, h: 243.4, baseline: TOP_BASELINE },
+  i: { outlines: [25, 27], holes: [], x: 1299.5, top: 8.4, w: 75.5, h: 237.7, baseline: TOP_BASELINE },
+  j: { outlines: [20, 26], holes: [], x: 1375.1, top: 6.6, w: 110, h: 325.8, baseline: TOP_BASELINE },
+  k: { outlines: [8], holes: [], x: 1508.6, top: 1.6, w: 144.9, h: 244.1, baseline: TOP_BASELINE },
+  l: { outlines: [19], holes: [], x: 1685.3, top: 0.4, w: 70.4, h: 244.2, baseline: TOP_BASELINE },
+  m: { outlines: [0], holes: [], x: 1790.9, top: 84.2, w: 236.2, h: 162.1, baseline: TOP_BASELINE },
+  n: { outlines: [9], holes: [], x: 2069.2, top: 83.7, w: 161.5, h: 161.9, baseline: TOP_BASELINE },
+  o: { outlines: [13], holes: [35], x: 8.9, top: 433.1, w: 130.2, h: 162.7, baseline: BOTTOM_BASELINE },
+  p: { outlines: [4], holes: [31], x: 162, top: 433.8, w: 155, h: 250, baseline: BOTTOM_BASELINE },
+  q: { outlines: [6], holes: [32], x: 355.3, top: 432.8, w: 133.8, h: 249.5, baseline: BOTTOM_BASELINE },
+  r: { outlines: [24], holes: [], x: 517.7, top: 433.8, w: 108.5, h: 156.2, baseline: BOTTOM_BASELINE },
+  s: { outlines: [23], holes: [], x: 649.9, top: 432.7, w: 104, h: 158, baseline: BOTTOM_BASELINE },
+  t: { outlines: [22], holes: [], x: 777.3, top: 376.2, w: 83.5, h: 217.8, baseline: BOTTOM_BASELINE },
+  u: { outlines: [10], holes: [], x: 900.9, top: 434.2, w: 156.7, h: 162.5, baseline: BOTTOM_BASELINE },
+  v: { outlines: [14], holes: [], x: 1092.6, top: 432.1, w: 149.9, h: 162.6, baseline: BOTTOM_BASELINE },
+  w: { outlines: [1], holes: [], x: 1275.2, top: 432, w: 223.2, h: 162.9, baseline: BOTTOM_BASELINE },
+  x: { outlines: [15], holes: [], x: 1527.7, top: 432.7, w: 156.2, h: 163.1, baseline: BOTTOM_BASELINE },
+  y: { outlines: [18], holes: [], x: 1647.4, top: 451.7, w: 173.7, h: 274.3, baseline: BOTTOM_BASELINE },
+  z: { outlines: [16], holes: [], x: 1849.1, top: 432.5, w: 136.4, h: 160.9, baseline: BOTTOM_BASELINE },
+};
+
 const canvas = document.querySelector("#letters");
+const keyboard = document.querySelector("#keyboard");
+const typeHint = document.querySelector("#type-hint");
 const ctx = canvas.getContext("2d");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -30,6 +68,23 @@ let viewWidth = 0;
 let viewHeight = 0;
 let simScale = 1;
 let building = false;
+let rebuildQueued = false;
+let rebuildTimer = 0;
+let typed = "";
+let keyboardOpen = false;
+let caretMark = null;
+
+prepareGlyphs();
+
+function prepareGlyphs() {
+  const paths = [...document.querySelectorAll("#letter-source svg path")];
+  Object.values(GLYPHS).forEach((glyph) => {
+    glyph.outlinePaths = glyph.outlines.map((index) => new Path2D(paths[index].getAttribute("d")));
+    glyph.holePaths = glyph.holes.map((index) => new Path2D(paths[index].getAttribute("d")));
+    glyph.rise = glyph.baseline - glyph.top;
+    glyph.drop = glyph.top + glyph.h - glyph.baseline;
+  });
+}
 
 function hash(n) {
   const x = Math.sin(n * 127.1) * 43758.5453;
@@ -273,7 +328,216 @@ function buildRopes(dist, mask, w, h, images) {
   return next;
 }
 
+function showingSpecimen() {
+  return !keyboardOpen && !/[a-z]/i.test(typed);
+}
+
+function usableCharacters(text) {
+  return [...text.toLowerCase()].filter((character) => character === "\n" || character === " " || GLYPHS[character]);
+}
+
+function wordWidth(glyphs) {
+  return glyphs.reduce((sum, glyph, index) => sum + glyph.w + (index ? LETTER_GAP : 0), 0);
+}
+
+function wrapText(characters, maxWidth) {
+  const words = [];
+  let word = [];
+
+  characters.forEach((character) => {
+    if (character === "\n" || character === " ") {
+      if (word.length) words.push(word);
+      word = [];
+      if (character === "\n") words.push(null);
+      return;
+    }
+    word.push(GLYPHS[character]);
+  });
+  if (word.length) words.push(word);
+
+  const lines = [];
+  let line = [];
+  let width = 0;
+
+  function commit() {
+    lines.push(line);
+    line = [];
+    width = 0;
+  }
+
+  words.forEach((entry) => {
+    if (entry === null) {
+      commit();
+      return;
+    }
+
+    const entryWidth = wordWidth(entry);
+    if (line.length && width + SPACE_WIDTH + entryWidth > maxWidth) commit();
+
+    let x = line.length ? width + SPACE_WIDTH : 0;
+    entry.forEach((glyph, index) => {
+      if (index) x += LETTER_GAP;
+      line.push({ glyph, x });
+      x += glyph.w;
+    });
+    width = x;
+  });
+
+  if (line.length || !lines.length) lines.push(line);
+  return lines;
+}
+
+function lineWidth(line) {
+  if (!line.length) return 0;
+  const last = line[line.length - 1];
+  return last.x + last.glyph.w;
+}
+
+function composeText(text, boxWidth, boxHeight) {
+  const characters = usableCharacters(text);
+  const widest = Math.max(...Object.values(GLYPHS).map((glyph) => glyph.w));
+  const looseWidth = Math.max(widest, ...wrapText(characters, 1e9).map(lineWidth));
+  let best = null;
+  const step = Math.max(28, looseWidth / 32);
+
+  for (let maxWidth = widest; maxWidth <= looseWidth + step; maxWidth += step) {
+    const lines = wrapText(characters, maxWidth);
+    const blockWidth = Math.max(1, ...lines.map(lineWidth));
+    lines.forEach((line) => {
+      const offset = (blockWidth - lineWidth(line)) / 2;
+      line.forEach((item) => {
+        item.x += offset;
+      });
+    });
+
+    let baseline = 0;
+    let previousDrop = 0;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    const placed = [];
+
+    lines.forEach((line, index) => {
+      const rise = line.reduce((max, item) => Math.max(max, item.glyph.rise), 150);
+      const drop = line.reduce((max, item) => Math.max(max, item.glyph.drop), 24);
+      if (index > 0) baseline += previousDrop + LINE_GAP + rise;
+      line.forEach((item) => {
+        const top = baseline - item.glyph.rise;
+        minY = Math.min(minY, top);
+        maxY = Math.max(maxY, top + item.glyph.h);
+        placed.push({ glyph: item.glyph, x: item.x, baseline });
+      });
+      previousDrop = drop;
+    });
+
+    if (!placed.length) {
+      minY = -160;
+      maxY = 16;
+    }
+
+    const lastLine = lines[lines.length - 1];
+    const caret = {
+      x: lastLine.length ? lineWidth(lastLine) + 18 : blockWidth / 2,
+      baseline: baseline,
+    };
+
+    const block = {
+      placed,
+      caret,
+      minX: 0,
+      minY,
+      width: blockWidth,
+      height: Math.max(40, maxY - minY),
+    };
+    const scale = Math.min(boxWidth / block.width, boxHeight / block.height);
+    const lineCount = lines.filter((line) => line.length).length || 1;
+    const candidate = { ...block, scale, lineCount };
+    if (!best || candidate.scale > best.scale * 1.12 || (candidate.lineCount < best.lineCount && candidate.scale > best.scale * 0.9)) {
+      best = candidate;
+    }
+  }
+
+  return best;
+}
+
+function fitBox(w, h) {
+  const keyboardHeight = keyboardOpen ? keyboard.offsetHeight * simScale : 0;
+  return {
+    width: w,
+    height: Math.max(80, h - keyboardHeight),
+  };
+}
+
 function rasterizeLetters(w, h) {
+  caretMark = null;
+  if (showingSpecimen()) return rasterizeSpecimen(w, h);
+  if (!/[a-z]/i.test(typed)) return rasterizeBlank(w, h);
+  return rasterizeTyped(w, h);
+}
+
+function rasterizeBlank(w, h) {
+  const maskCanvas = document.createElement("canvas");
+  maskCanvas.width = w;
+  maskCanvas.height = h;
+  const box = fitBox(w, h);
+  caretMark = {
+    x: w / 2,
+    y: box.height / 2 - 70,
+    w: 3,
+    h: 140,
+  };
+  return { mask: new Uint8Array(w * h), canvas: maskCanvas };
+}
+
+function rasterizeTyped(w, h) {
+  const box = fitBox(w, h);
+  const padX = w * 0.08;
+  const padY = box.height * 0.1;
+  const composed = composeText(typed, Math.max(40, w - padX * 2), Math.max(40, box.height - padY * 2));
+  const scale = Math.min(
+    (w - padX * 2) / composed.width,
+    (box.height - padY * 2) / composed.height
+  );
+  const ox = (w - composed.width * scale) / 2;
+  const oy = (box.height - composed.height * scale) / 2;
+
+  const maskCanvas = document.createElement("canvas");
+  maskCanvas.width = w;
+  maskCanvas.height = h;
+  const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
+  maskCtx.setTransform(scale, 0, 0, scale, ox - composed.minX * scale, oy - composed.minY * scale);
+  maskCtx.fillStyle = "#000";
+
+  composed.placed.forEach((item) => {
+    maskCtx.save();
+    maskCtx.translate(item.x - item.glyph.x, item.baseline - item.glyph.baseline);
+    item.glyph.outlinePaths.forEach((path) => maskCtx.fill(path));
+    maskCtx.restore();
+  });
+
+  maskCtx.globalCompositeOperation = "destination-out";
+  composed.placed.forEach((item) => {
+    if (!item.glyph.holePaths.length) return;
+    maskCtx.save();
+    maskCtx.translate(item.x - item.glyph.x, item.baseline - item.glyph.baseline);
+    item.glyph.holePaths.forEach((path) => maskCtx.fill(path));
+    maskCtx.restore();
+  });
+
+  const caretTop = composed.caret.baseline - 150;
+  caretMark = {
+    x: ox + (composed.caret.x - composed.minX) * scale,
+    y: oy + (caretTop - composed.minY) * scale,
+    w: Math.max(2.5, 3.2 * scale),
+    h: 158 * scale,
+  };
+
+  const pixels = maskCtx.getImageData(0, 0, w, h).data;
+  const mask = new Uint8Array(w * h);
+  for (let i = 0; i < mask.length; i += 1) mask[i] = pixels[i * 4 + 3] > 128 ? 1 : 0;
+  return { mask, canvas: maskCanvas };
+}
+
+function rasterizeSpecimen(w, h) {
   const svg = document.querySelector("#letter-source svg");
   const [vx, vy, vw, vh] = svg.getAttribute("viewBox").split(/[\s,]+/).map(Number);
   const paths = [...svg.querySelectorAll("path")];
@@ -306,6 +570,58 @@ function rasterizeLetters(w, h) {
   const mask = new Uint8Array(w * h);
   for (let i = 0; i < mask.length; i += 1) mask[i] = pixels[i * 4 + 3] > 128 ? 1 : 0;
   return { mask, canvas: maskCanvas };
+}
+
+function requestRebuild() {
+  if (building) {
+    rebuildQueued = true;
+    return;
+  }
+  rebuild();
+  if (rebuildQueued) {
+    rebuildQueued = false;
+    requestRebuild();
+  }
+}
+
+function scheduleRebuild(immediate) {
+  window.clearTimeout(rebuildTimer);
+  if (immediate) requestRebuild();
+  else rebuildTimer = window.setTimeout(requestRebuild, 40);
+}
+
+function insertText(text) {
+  const clean = [...text].filter((character) => {
+    const lower = character.toLowerCase();
+    return lower === "\n" || lower === " " || GLYPHS[lower];
+  }).join("").toLowerCase();
+  if (!clean) return;
+  typed = (typed + clean).replace(/[ ]{2,}/g, " ").slice(0, MAX_TYPED);
+  syncChrome();
+  scheduleRebuild(false);
+}
+
+function deleteText() {
+  typed = [...typed].slice(0, -1).join("");
+  syncChrome();
+  scheduleRebuild(false);
+}
+
+function syncChrome() {
+  keyboard.hidden = !keyboardOpen;
+  typeHint.hidden = keyboardOpen || /[a-z]/i.test(typed);
+}
+
+function setKeyboard(open) {
+  keyboardOpen = open;
+  syncChrome();
+  canvas.setAttribute(
+    "aria-label",
+    open || /[a-z]/i.test(typed)
+      ? `Typing ${typed || "nothing yet"}. Letters are built from tinsel strands.`
+      : "Lowercase alphabet built from tinsel strands. Click to type."
+  );
+  scheduleRebuild(true);
 }
 
 function rebuild() {
@@ -487,6 +803,12 @@ function frame() {
   ctx.setTransform(dpr / simScale, 0, 0, dpr / simScale, 0, 0);
   ctx.clearRect(0, 0, viewWidth * simScale, viewHeight * simScale);
   ropes.forEach(drawRope);
+
+  if (keyboardOpen && caretMark && (reducedMotion || Math.floor(windClock / 28) % 2 === 0)) {
+    ctx.fillStyle = "#2a241c";
+    ctx.fillRect(caretMark.x, caretMark.y, caretMark.w, caretMark.h);
+  }
+
   requestAnimationFrame(frame);
 }
 
@@ -504,6 +826,53 @@ function resize() {
 }
 
 window.addEventListener("resize", resize);
+
+canvas.addEventListener("click", () => {
+  setKeyboard(!keyboardOpen);
+});
+
+keyboard.addEventListener("pointerdown", (event) => {
+  const key = event.target.closest("button");
+  if (!key) return;
+  event.preventDefault();
+  const value = key.dataset.key;
+  if (value === "backspace") deleteText();
+  else if (value === "done") setKeyboard(false);
+  else insertText(value);
+});
+
+window.addEventListener("keydown", (event) => {
+  if (!keyboardOpen || event.metaKey || event.ctrlKey || event.altKey) return;
+  if (event.key === "Escape") {
+    setKeyboard(false);
+    return;
+  }
+  if (event.key === "Backspace") {
+    event.preventDefault();
+    deleteText();
+    return;
+  }
+  if (event.key === "Enter") {
+    event.preventDefault();
+    insertText("\n");
+    return;
+  }
+  if (event.key === " ") {
+    event.preventDefault();
+    insertText(" ");
+    return;
+  }
+  if (/^[a-z]$/i.test(event.key)) {
+    event.preventDefault();
+    insertText(event.key);
+  }
+});
+
+window.addEventListener("paste", (event) => {
+  if (!keyboardOpen) return;
+  event.preventDefault();
+  insertText(event.clipboardData.getData("text") || "");
+});
 
 resize();
 
