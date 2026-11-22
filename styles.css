@@ -22,24 +22,6 @@ body {
   cursor: pointer;
 }
 
-#type-hint {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 28px;
-  z-index: 1;
-  text-align: center;
-  font: 13px/1 "Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(42, 36, 28, 0.46);
-  pointer-events: none;
-}
-
-#type-hint[hidden] {
-  display: none;
-}
-
 #keyboard {
   position: fixed;
   left: 0;
@@ -92,6 +74,12 @@ body {
   max-width: 108px;
   font-size: 14px;
   letter-spacing: 0.04em;
+}
+
+#keyboard .key-punct {
+  flex: 0.7 1 0;
+  max-width: 52px;
+  font-size: 22px;
 }
 
 #keyboard .key-space {

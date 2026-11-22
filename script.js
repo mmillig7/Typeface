@@ -54,11 +54,19 @@ const GLYPHS = {
   x: { outlines: [15], holes: [], x: 1527.7, top: 432.7, w: 156.2, h: 163.1, baseline: BOTTOM_BASELINE },
   y: { outlines: [18], holes: [], x: 1647.4, top: 451.7, w: 173.7, h: 274.3, baseline: BOTTOM_BASELINE },
   z: { outlines: [16], holes: [], x: 1849.1, top: 432.5, w: 136.4, h: 160.9, baseline: BOTTOM_BASELINE },
+  ".": { punct: true, x: 0, top: 191.07, w: 47.66, h: 54.93, baseline: TOP_BASELINE },
+  "!": { punct: true, x: 0, top: 27.42, w: 61.4, h: 218.58, baseline: TOP_BASELINE },
+  "?": { punct: true, x: 0, top: 21.62, w: 116.42, h: 224.38, baseline: TOP_BASELINE },
+};
+
+const PUNCT_PATHS = {
+  ".": "M 46.80 205.31C 50.30 218.39 42.74 239.49 30.34 244.00C 22.53 246.83 10.52 247.41 5.45 240.71C -5.71 225.94 1.46 205.39 15.91 195.62C 21.46 191.89 27.84 189.95 33.98 191.75C 39.56 193.39 45.03 198.71 46.80 205.31Z",
+  "!": "M 29.66 27.42L 28.02 34.69L 26.25 41.83L 24.36 48.99L 22.40 56.14L 20.39 63.30L 18.36 70.44L 16.35 77.58L 14.38 84.70L 12.47 91.81L 10.66 98.88L 8.95 105.92L 7.37 112.92L 5.92 119.87L 4.63 126.76L 3.48 133.57L 2.49 140.30L 1.65 146.91L 0.96 153.40L 0.41 159.74L 0.00 165.87L 3.61 159.59L 9.88 155.95L 17.13 155.94L 23.41 159.55L 27.05 165.82L 27.06 173.07L 29.73 167.60L 32.43 161.94L 35.11 156.05L 37.75 149.94L 40.33 143.62L 42.81 137.08L 45.18 130.35L 47.41 123.42L 49.49 116.32L 51.40 109.06L 53.15 101.65L 54.73 94.11L 56.13 86.46L 57.36 78.71L 58.42 70.89L 59.31 63.02L 60.05 55.12L 60.65 47.19L 61.10 39.27L 61.40 31.52L 58.24 39.18L 51.68 44.24L 43.48 45.34L 35.82 42.18L 30.76 35.62ZM 53.67 205.31C 57.17 218.39 49.61 239.49 37.21 244.00C 29.40 246.83 17.39 247.41 12.32 240.71C 1.16 225.94 8.33 205.39 22.78 195.62C 28.33 191.89 34.71 189.95 40.85 191.75C 46.43 193.39 51.90 198.71 53.67 205.31Z",
+  "?": "M 36.23 120.68L 34.23 113.72L 32.99 107.54L 32.28 101.66L 32.07 96.10L 32.31 90.89L 32.97 86.04L 33.99 81.59L 35.34 77.56L 36.95 73.94L 38.79 70.77L 40.79 68.03L 42.92 65.72L 45.13 63.83L 47.40 62.33L 49.70 61.19L 52.06 60.38L 54.49 59.87L 57.05 59.66L 59.79 59.76L 62.80 60.23L 65.91 61.06L 68.26 62.07L 70.13 63.22L 71.64 64.48L 72.90 65.87L 73.97 67.45L 74.88 69.26L 75.62 71.35L 76.17 73.74L 76.47 76.42L 76.49 79.39L 76.17 82.61L 75.49 86.03L 74.41 89.62L 72.90 93.33L 70.94 97.13L 68.50 100.95L 65.56 104.77L 62.10 108.53L 57.31 112.85L 54.43 115.71L 51.82 118.45L 49.39 121.16L 47.12 123.84L 45.02 126.49L 43.07 129.11L 41.28 131.70L 39.63 134.26L 38.12 136.78L 36.74 139.26L 35.49 141.70L 34.35 144.09L 33.32 146.44L 32.39 148.73L 31.55 150.97L 30.79 153.16L 30.10 155.30L 29.46 157.39L 28.87 159.43L 28.32 161.43L 32.78 156.40L 39.17 154.27L 45.76 155.63L 50.79 160.09L 52.92 166.48L 51.56 173.07L 52.81 171.47L 54.04 169.90L 55.26 168.37L 56.48 166.87L 57.70 165.40L 58.94 163.95L 60.19 162.52L 61.47 161.10L 62.78 159.67L 64.14 158.24L 65.55 156.79L 67.03 155.31L 68.59 153.80L 70.24 152.24L 71.99 150.63L 73.85 148.96L 75.83 147.23L 77.96 145.42L 80.23 143.53L 82.57 141.65L 88.55 136.68L 94.61 130.66L 99.96 124.28L 104.59 117.60L 108.48 110.67L 111.62 103.53L 114.01 96.26L 115.61 88.89L 116.42 81.47L 116.41 74.08L 115.54 66.76L 113.79 59.60L 111.13 52.69L 107.52 46.15L 102.98 40.13L 97.55 34.76L 91.31 30.19L 84.37 26.54L 76.86 23.88L 69.08 22.27L 61.45 21.62L 53.90 21.93L 46.57 23.20L 39.56 25.39L 32.99 28.43L 26.92 32.26L 21.41 36.79L 16.51 41.93L 12.23 47.60L 8.59 53.73L 5.59 60.27L 3.23 67.15L 1.51 74.34L 0.43 81.80L 0.00 89.49L 0.23 97.38L 1.11 105.43L 2.67 113.63L 4.90 121.94L 7.65 129.82L 7.28 122.07L 10.84 115.16L 17.37 110.96L 25.12 110.59L 32.03 114.15ZM 66.91 205.31C 70.41 218.39 62.85 239.49 50.45 244.00C 42.64 246.83 30.63 247.41 25.56 240.71C 14.40 225.94 21.57 205.39 36.02 195.62C 41.57 191.89 47.95 189.95 54.09 191.75C 59.67 193.39 65.14 198.71 66.91 205.31Z",
 };
 
 const canvas = document.querySelector("#letters");
 const keyboard = document.querySelector("#keyboard");
-const typeHint = document.querySelector("#type-hint");
 const ctx = canvas.getContext("2d");
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -78,9 +86,14 @@ prepareGlyphs();
 
 function prepareGlyphs() {
   const paths = [...document.querySelectorAll("#letter-source svg path")];
-  Object.values(GLYPHS).forEach((glyph) => {
-    glyph.outlinePaths = glyph.outlines.map((index) => new Path2D(paths[index].getAttribute("d")));
-    glyph.holePaths = glyph.holes.map((index) => new Path2D(paths[index].getAttribute("d")));
+  Object.entries(GLYPHS).forEach(([character, glyph]) => {
+    if (glyph.punct) {
+      glyph.outlinePaths = [new Path2D(PUNCT_PATHS[character])];
+      glyph.holePaths = [];
+    } else {
+      glyph.outlinePaths = glyph.outlines.map((index) => new Path2D(paths[index].getAttribute("d")));
+      glyph.holePaths = glyph.holes.map((index) => new Path2D(paths[index].getAttribute("d")));
+    }
     glyph.rise = glyph.baseline - glyph.top;
     glyph.drop = glyph.top + glyph.h - glyph.baseline;
   });
@@ -328,8 +341,12 @@ function buildRopes(dist, mask, w, h, images) {
   return next;
 }
 
+function hasInkText() {
+  return usableCharacters(typed).some((character) => character !== " " && character !== "\n");
+}
+
 function showingSpecimen() {
-  return !keyboardOpen && !/[a-z]/i.test(typed);
+  return !keyboardOpen && !hasInkText();
 }
 
 function usableCharacters(text) {
@@ -337,7 +354,7 @@ function usableCharacters(text) {
 }
 
 function wordWidth(glyphs) {
-  return glyphs.reduce((sum, glyph, index) => sum + glyph.w + (index ? LETTER_GAP : 0), 0);
+  return glyphs.reduce((sum, glyph, index) => sum + glyph.w + (index ? (glyph.punct ? 14 : LETTER_GAP) : 0), 0);
 }
 
 function wrapText(characters, maxWidth) {
@@ -376,7 +393,7 @@ function wrapText(characters, maxWidth) {
 
     let x = line.length ? width + SPACE_WIDTH : 0;
     entry.forEach((glyph, index) => {
-      if (index) x += LETTER_GAP;
+      if (index) x += glyph.punct ? 14 : LETTER_GAP;
       line.push({ glyph, x });
       x += glyph.w;
     });
@@ -470,7 +487,7 @@ function fitBox(w, h) {
 function rasterizeLetters(w, h) {
   caretMark = null;
   if (showingSpecimen()) return rasterizeSpecimen(w, h);
-  if (!/[a-z]/i.test(typed)) return rasterizeBlank(w, h);
+  if (!hasInkText()) return rasterizeBlank(w, h);
   return rasterizeTyped(w, h);
 }
 
@@ -609,7 +626,6 @@ function deleteText() {
 
 function syncChrome() {
   keyboard.hidden = !keyboardOpen;
-  typeHint.hidden = keyboardOpen || /[a-z]/i.test(typed);
 }
 
 function setKeyboard(open) {
@@ -862,7 +878,7 @@ window.addEventListener("keydown", (event) => {
     insertText(" ");
     return;
   }
-  if (/^[a-z]$/i.test(event.key)) {
+  if (GLYPHS[event.key.toLowerCase()]) {
     event.preventDefault();
     insertText(event.key);
   }
