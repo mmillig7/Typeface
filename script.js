@@ -47,7 +47,7 @@ const GLYPHS = {
   q: { outlines: [6], holes: [32], x: 355.3, top: 432.8, w: 133.8, h: 249.5, baseline: BOTTOM_BASELINE },
   r: { outlines: [24], holes: [], x: 517.7, top: 433.8, w: 108.5, h: 156.2, baseline: BOTTOM_BASELINE },
   s: { outlines: [23], holes: [], x: 649.9, top: 432.7, w: 104, h: 158, baseline: BOTTOM_BASELINE },
-  t: { outlines: [22], holes: [], x: 777.3, top: 376.2, w: 83.5, h: 217.8, baseline: BOTTOM_BASELINE },
+  t: { outlines: [22], holes: [], x: 777.3, top: 376.2, w: 143.5, h: 217.8, baseline: BOTTOM_BASELINE },
   u: { outlines: [10], holes: [], x: 900.9, top: 434.2, w: 156.7, h: 162.5, baseline: BOTTOM_BASELINE },
   v: { outlines: [14], holes: [], x: 1092.6, top: 432.1, w: 149.9, h: 162.6, baseline: BOTTOM_BASELINE },
   w: { outlines: [1], holes: [], x: 1275.2, top: 432, w: 223.2, h: 162.9, baseline: BOTTOM_BASELINE },
